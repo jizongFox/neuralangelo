@@ -9,7 +9,7 @@ checkpoints
 *.ipynb
 *.DS_Store
 *.pyc
-
+.idea
 # Credential information that should never be checked in
 *.secret
 
