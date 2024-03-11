@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import torch
 
@@ -20,7 +20,7 @@ SH_C2 = [
     -1.0925484305920792,
     0.31539156525252005,
     -1.0925484305920792,
-    0.5462742152960396
+    0.5462742152960396,
 ]
 SH_C3 = [
     -0.5900435899266435,
@@ -29,7 +29,7 @@ SH_C3 = [
     0.3731763325901154,
     -0.4570457994644658,
     1.445305721320277,
-    -0.5900435899266435
+    -0.5900435899266435,
 ]
 SH_C4 = [
     2.5033429417967046,

@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import numpy as np
 from argparse import ArgumentParser
@@ -21,7 +21,10 @@ import math
 dir_path = Path(os.path.dirname(os.path.realpath(__file__))).parents[2]
 sys.path.append(dir_path.__str__())
 
-from third_party.colmap.scripts.python.read_write_model import read_model, qvec2rotmat  # NOQA
+from third_party.colmap.scripts.python.read_write_model import (
+    read_model,
+    qvec2rotmat,
+)  # NOQA
 
 
 def find_closest_point(p1, d1, p2, d2):
@@ -61,7 +64,9 @@ def bound_by_pose(images):
         src_frame = f[0:3, :]
         for g in poses:
             tgt_frame = g[0:3, :]
-            p = find_closest_point(src_frame[:, 3], src_frame[:, 2], tgt_frame[:, 3], tgt_frame[:, 2])
+            p = find_closest_point(
+                src_frame[:, 3], src_frame[:, 2], tgt_frame[:, 3], tgt_frame[:, 2]
+            )
             center += p
     center /= len(poses) ** 2
 
@@ -81,7 +86,9 @@ def bound_by_points(points3D):
     xyzs = np.stack([point.xyz for point in points3D.values()])
     center = xyzs.mean(axis=0)
     std = xyzs.std(axis=0)
-    radius = float(std.max() * 2)  # use 2*std to define the region, equivalent to 95% percentile
+    radius = float(
+        std.max() * 2
+    )  # use 2*std to define the region, equivalent to 95% percentile
     bounding_box = [
         [center[0] - std[0] * 3, center[0] + std[0] * 3],
         [center[1] - std[1] * 3, center[1] + std[1] * 3],
@@ -112,11 +119,15 @@ def check_concentric(images, ang_tol=np.pi / 6.0, radii_tol=0.5, pose_tol=0.5):
     vec_unit = vec / radii
     ang = np.arccos((look_at * vec_unit).sum(axis=-1, keepdims=True))
     ang_valid = ang < ang_tol
-    print(f"Fraction of images looking at the center: {ang_valid.sum()/num_images:.2f}.")
+    print(
+        f"Fraction of images looking at the center: {ang_valid.sum()/num_images:.2f}."
+    )
 
     radius_mean = radii.mean()
     radii_valid = np.isclose(radius_mean, radii, rtol=radii_tol)
-    print(f"Fraction of images positioned around the center: {radii_valid.sum()/num_images:.2f}.")
+    print(
+        f"Fraction of images positioned around the center: {radii_valid.sum()/num_images:.2f}."
+    )
 
     valid = ang_valid * radii_valid
     print(f"Valid fraction of concentric images: {valid.sum()/num_images:.2f}.")
@@ -162,7 +173,9 @@ def export_to_json(cameras, images, bounding_box, center, radius, file_path):
         "cy": cy,
         "w": int(w),
         "h": int(h),
-        "aabb_scale": np.exp2(np.rint(np.log2(radius))),  # power of two, for INGP resolution computation
+        "aabb_scale": np.exp2(
+            np.rint(np.log2(radius))
+        ),  # power of two, for INGP resolution computation
         "aabb_range": bounding_box,
         "sphere_center": center,
         "sphere_radius": radius,
@@ -188,7 +201,9 @@ def export_to_json(cameras, images, bounding_box, center, radius, file_path):
 
 
 def data_to_json(args):
-    cameras, images, points3D = read_model(os.path.join(args.data_dir, "sparse"), ext=".bin")
+    cameras, images, points3D = read_model(
+        os.path.join(args.data_dir, "sparse"), ext=".bin"
+    )
 
     # define bounding regions based on scene type
     if args.scene_type == "outdoor":
@@ -206,7 +221,14 @@ def data_to_json(args):
         raise TypeError("Unknown scene type")
 
     # export json file
-    export_to_json(cameras, images, bounding_box, list(center), radius, os.path.join(args.data_dir, "transforms.json"))
+    export_to_json(
+        cameras,
+        images,
+        bounding_box,
+        list(center),
+        radius,
+        os.path.join(args.data_dir, "transforms.json"),
+    )
     print("Writing data to json file: ", os.path.join(args.data_dir, "transforms.json"))
     return
 

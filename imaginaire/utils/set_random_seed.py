@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import random
 import numpy as np
@@ -31,6 +31,6 @@ def set_random_seed(seed, by_rank=False):
     print(f"Using random seed {seed}")
     random.seed(seed)
     np.random.seed(seed)
-    torch.manual_seed(seed)         # sets seed on the current CPU & all GPUs
-    torch.cuda.manual_seed(seed)    # sets seed on current GPU
+    torch.manual_seed(seed)  # sets seed on the current CPU & all GPUs
+    torch.cuda.manual_seed(seed)  # sets seed on current GPU
     # torch.cuda.manual_seed_all(seed)  # included in torch.manual_seed

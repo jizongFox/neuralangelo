@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 from functools import partial
 import numpy as np
@@ -17,12 +17,7 @@ import torch.nn.functional as torch_F
 import imaginaire.trainers.utils
 from torch.optim import lr_scheduler
 
-flip_mat = np.array([
-    [1, 0, 0, 0],
-    [0, -1, 0, 0],
-    [0, 0, -1, 0],
-    [0, 0, 0, 1]
-])
+flip_mat = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 
 
 def get_scheduler(cfg_opt, opt):
@@ -35,7 +30,7 @@ def get_scheduler(cfg_opt, opt):
     Returns:
         (obj): Scheduler
     """
-    if cfg_opt.sched.type == 'two_steps_with_warmup':
+    if cfg_opt.sched.type == "two_steps_with_warmup":
         warm_up_end = cfg_opt.sched.warm_up_end
         two_steps = cfg_opt.sched.two_steps
         gamma = cfg_opt.sched.gamma
@@ -52,7 +47,7 @@ def get_scheduler(cfg_opt, opt):
                     return 1.0
 
         scheduler = lr_scheduler.LambdaLR(opt, lambda x: sch(x))
-    elif cfg_opt.sched.type == 'cos_with_warmup':
+    elif cfg_opt.sched.type == "cos_with_warmup":
         alpha = cfg_opt.sched.alpha
         max_iter = cfg_opt.sched.max_iter
         warm_up_end = cfg_opt.sched.warm_up_end
@@ -62,7 +57,9 @@ def get_scheduler(cfg_opt, opt):
                 return x / warm_up_end
             else:
                 progress = (x - warm_up_end) / (max_iter - warm_up_end)
-                learning_factor = (np.cos(np.pi * progress) + 1.0) * 0.5 * (1 - alpha) + alpha
+                learning_factor = (np.cos(np.pi * progress) + 1.0) * 0.5 * (
+                    1 - alpha
+                ) + alpha
                 return learning_factor
 
         scheduler = lr_scheduler.LambdaLR(opt, lambda x: sch(x))
@@ -73,7 +70,9 @@ def get_scheduler(cfg_opt, opt):
 
 def eikonal_loss(gradients, outside=None):
     gradient_error = (gradients.norm(dim=-1) - 1.0) ** 2  # [B,R,N]
-    gradient_error = gradient_error.nan_to_num(nan=0.0, posinf=0.0, neginf=0.0)  # [B,R,N]
+    gradient_error = gradient_error.nan_to_num(
+        nan=0.0, posinf=0.0, neginf=0.0
+    )  # [B,R,N]
     if outside is not None:
         return (gradient_error * (~outside).float()).mean()
     else:

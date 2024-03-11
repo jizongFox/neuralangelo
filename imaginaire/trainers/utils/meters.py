@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,15 +8,19 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import math
 import torch
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-from imaginaire.utils.distributed import master_only, dist_all_reduce_tensor, \
-    is_master, get_rank
+from imaginaire.utils.distributed import (
+    master_only,
+    dist_all_reduce_tensor,
+    is_master,
+    get_rank,
+)
 
 from imaginaire.utils.distributed import master_only_print as print
 
@@ -46,7 +50,7 @@ def get_weight_stats(mod):
     if mod.weight_orig.grad is not None:
         grad_norm = mod.weight_orig.grad.data.norm().item()
     else:
-        grad_norm = 0.
+        grad_norm = 0.0
     weight_norm = mod.weight_orig.data.norm().item()
     weight_mat = sn_reshape_weight_to_matrix(mod.weight_orig)
     sigma = torch.sum(mod.weight_u * torch.mv(weight_mat, mod.weight_v))
@@ -66,8 +70,7 @@ def set_summary_writer(log_dir):
 
 
 def write_summary(name, summary, step, hist=False):
-    """Utility function for write summary to log_writer.
-    """
+    """Utility function for write summary to log_writer."""
     global LOG_WRITER
     lw = LOG_WRITER
     if lw is None:

@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import torch
 
@@ -29,7 +29,9 @@ def collate_test_data_batches(data_batches):
             data_gather[key] = collate_test_data_batches(data_list)
         elif isinstance(data_batches[0][key], torch.Tensor):
             data_gather[key] = torch.cat(data_list, dim=0)
-            data_gather[key] = torch.cat(dist_all_gather_tensor(data_gather[key].contiguous()), dim=0)
+            data_gather[key] = torch.cat(
+                dist_all_gather_tensor(data_gather[key].contiguous()), dim=0
+            )
         else:
             raise TypeError
     return data_gather

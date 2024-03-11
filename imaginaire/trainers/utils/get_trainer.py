@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import importlib
 import torch
@@ -46,17 +46,17 @@ def wrap_model(cfg, model):
     """
     # Apply model average wrapper.
     if cfg.trainer.ema_config.enabled:
-        model = ModelAverage(model,
-                             cfg.trainer.ema_config.beta,
-                             cfg.trainer.ema_config.start_iteration,
-                             )
+        model = ModelAverage(
+            model,
+            cfg.trainer.ema_config.beta,
+            cfg.trainer.ema_config.start_iteration,
+        )
     model = _wrap_model(cfg, model)
     return model
 
 
 class WrappedModel(nn.Module):
-    r"""Dummy wrapping the module.
-    """
+    r"""Dummy wrapping the module."""
 
     def __init__(self, module):
         super(WrappedModel, self).__init__()
@@ -113,7 +113,7 @@ def get_optimizer(cfg_optim, model):
     Returns:
         (obj): Pytorch optimizer
     """
-    if hasattr(model, 'get_param_groups'):
+    if hasattr(model, "get_param_groups"):
         # Allow the network to use different hyperparameters (e.g., learning rate) for different parameters.
         params = model.get_param_groups(cfg_optim)
     else:
@@ -129,18 +129,19 @@ def get_optimizer(cfg_optim, model):
     # We will try to use fuse optimizers by default.
     try:
         from apex.optimizers import FusedAdam, FusedSGD
+
         fused_opt = cfg_optim.fused_opt
     except (ImportError, ModuleNotFoundError):
         fused_opt = False
 
     if fused_opt:
-        if cfg_optim.type == 'Adam':
+        if cfg_optim.type == "Adam":
             optimizer_class = FusedAdam
-            optimizer_kwargs['adam_w_mode'] = False
-        elif cfg_optim.type == 'AdamW':
+            optimizer_kwargs["adam_w_mode"] = False
+        elif cfg_optim.type == "AdamW":
             optimizer_class = FusedAdam
-            optimizer_kwargs['adam_w_mode'] = True
-        elif cfg_optim.type == 'SGD':
+            optimizer_kwargs["adam_w_mode"] = True
+        elif cfg_optim.type == "SGD":
             optimizer_class = FusedSGD
     if cfg_optim.type in ["RAdam", "RMSprop"]:
         optimizer_kwargs["foreach"] = fused_opt
@@ -160,36 +161,40 @@ def get_scheduler(cfg_optim, optim):
     Returns:
         (obj): Scheduler
     """
-    if cfg_optim.sched.type == 'step':
-        scheduler = lr_scheduler.StepLR(optim,
-                                        step_size=cfg_optim.sched.step_size,
-                                        gamma=cfg_optim.sched.gamma)
-    elif cfg_optim.sched.type == 'constant':
+    if cfg_optim.sched.type == "step":
+        scheduler = lr_scheduler.StepLR(
+            optim, step_size=cfg_optim.sched.step_size, gamma=cfg_optim.sched.gamma
+        )
+    elif cfg_optim.sched.type == "constant":
         scheduler = lr_scheduler.LambdaLR(optim, lambda x: 1)
-    elif cfg_optim.sched.type == 'linear_warmup':
+    elif cfg_optim.sched.type == "linear_warmup":
         scheduler = lr_scheduler.LambdaLR(
-            optim, lambda x: x * 1.0 / cfg_optim.sched.warmup if x < cfg_optim.sched.warmup else 1.0)
-    elif cfg_optim.sched.type == 'cosine_warmup':
+            optim,
+            lambda x: x * 1.0 / cfg_optim.sched.warmup
+            if x < cfg_optim.sched.warmup
+            else 1.0,
+        )
+    elif cfg_optim.sched.type == "cosine_warmup":
 
         warmup_scheduler = lr_scheduler.LinearLR(
             optim,
             start_factor=1.0 / cfg_optim.sched.warmup,
             end_factor=1.0,
-            total_iters=cfg_optim.sched.warmup
+            total_iters=cfg_optim.sched.warmup,
         )
         T_max_val = cfg_optim.sched.decay_steps - cfg_optim.sched.warmup
         cosine_lr_scheduler = lr_scheduler.CosineAnnealingLR(
             optim,
             T_max=T_max_val,
-            eta_min=getattr(cfg_optim.sched, 'eta_min', 0),
+            eta_min=getattr(cfg_optim.sched, "eta_min", 0),
         )
         scheduler = lr_scheduler.SequentialLR(
             optim,
             schedulers=[warmup_scheduler, cosine_lr_scheduler],
-            milestones=[cfg_optim.sched.warmup]
+            milestones=[cfg_optim.sched.warmup],
         )
 
-    elif cfg_optim.sched.type == 'linear':
+    elif cfg_optim.sched.type == "linear":
         # Start linear decay from here.
         decay_start = cfg_optim.sched.decay_start
         # End linear decay here.
@@ -199,13 +204,15 @@ def get_scheduler(cfg_optim, optim):
         decay_target = cfg_optim.sched.decay_target
 
         def sch(x):
-            decay = ((x - decay_start) * decay_target + decay_end - x) / (decay_end - decay_start)
-            return min(max(decay, decay_target), 1.)
+            decay = ((x - decay_start) * decay_target + decay_end - x) / (
+                decay_end - decay_start
+            )
+            return min(max(decay, decay_target), 1.0)
 
         scheduler = lr_scheduler.LambdaLR(optim, lambda x: sch(x))
-    elif cfg_optim.sched.type == 'step_with_warmup':
+    elif cfg_optim.sched.type == "step_with_warmup":
         # The step_size and gamma follows the signature of lr_scheduler.StepLR.
-        step_size = cfg_optim.sched.step_size,
+        step_size = (cfg_optim.sched.step_size,)
         gamma = cfg_optim.sched.gamma
         # An additional parameter defines the warmup iteration.
         warmup_step_size = cfg_optim.sched.warmup_step_size
@@ -219,5 +226,7 @@ def get_scheduler(cfg_optim, optim):
 
         scheduler = lr_scheduler.LambdaLR(optim, lambda x: sch(x))
     else:
-        return NotImplementedError('Learning rate policy {} not implemented.'.format(cfg_optim.sched.type))
+        return NotImplementedError(
+            "Learning rate policy {} not implemented.".format(cfg_optim.sched.type)
+        )
     return scheduler

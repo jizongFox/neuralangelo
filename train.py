@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,35 +8,48 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import argparse
 import os
 
 import imaginaire.config
 from imaginaire.config import Config, recursive_update_strict, parse_cmdline_arguments
-from imaginaire.utils.cudnn import init_cudnn
-from imaginaire.utils.distributed import init_dist, get_world_size, master_only_print as print, is_master
-from imaginaire.utils.gpu_affinity import set_affinity
-from imaginaire.trainers.utils.logging import init_logging
 from imaginaire.trainers.utils.get_trainer import get_trainer
+from imaginaire.trainers.utils.logging import init_logging
+from imaginaire.utils.cudnn import init_cudnn
+from imaginaire.utils.distributed import (
+    init_dist,
+    get_world_size,
+    master_only_print as print,
+    is_master,
+)
+from imaginaire.utils.gpu_affinity import set_affinity
 from imaginaire.utils.set_random_seed import set_random_seed
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Training')
-    parser.add_argument('--config', help='Path to the training config file.', required=True)
-    parser.add_argument('--logdir', help='Dir for saving logs and models.', default=None)
-    parser.add_argument('--checkpoint', default=None, help='Checkpoint path.')
-    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
-    parser.add_argument('--local_rank', type=int, default=os.getenv('LOCAL_RANK', 0))
-    parser.add_argument('--single_gpu', action='store_true')
-    parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--profile', action='store_true')
-    parser.add_argument('--show_pbar', action='store_true')
-    parser.add_argument('--wandb', action='store_true', help="Enable using Weights & Biases as the logger")
-    parser.add_argument('--wandb_name', default='default', type=str)
-    parser.add_argument('--resume', action='store_true')
+    parser = argparse.ArgumentParser(description="Training")
+    parser.add_argument(
+        "--config", help="Path to the training config file.", required=True
+    )
+    parser.add_argument(
+        "--logdir", help="Dir for saving logs and models.", default=None
+    )
+    parser.add_argument("--checkpoint", default=None, help="Checkpoint path.")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed.")
+    parser.add_argument("--local_rank", type=int, default=os.getenv("LOCAL_RANK", 0))
+    parser.add_argument("--single_gpu", action="store_true")
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--profile", action="store_true")
+    parser.add_argument("--show_pbar", action="store_true")
+    parser.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable using Weights & Biases as the logger",
+    )
+    parser.add_argument("--wandb_name", default="default", type=str)
+    parser.add_argument("--resume", action="store_true")
     args, cfg_cmd = parser.parse_known_args()
     return args, cfg_cmd
 
@@ -73,28 +86,34 @@ def main():
         cfg.save_config(cfg.logdir)
 
     # Initialize cudnn.
-    init_cudnn(cfg.cudnn.deterministic, cfg.cudnn.benchmark)
+    init_cudnn(cfg.cudnn.deterministic, cfg.cudnn.benchmark)  # noqa
 
     # Initialize data loaders and models.
     trainer = get_trainer(cfg, is_inference=False, seed=args.seed)
     trainer.set_data_loader(cfg, split="train")
     trainer.set_data_loader(cfg, split="val")
-    trainer.checkpointer.load(args.checkpoint, args.resume, load_sch=True, load_opt=True)
+    trainer.checkpointer.load(
+        args.checkpoint, args.resume, load_sch=True, load_opt=True
+    )
 
     # Initialize Wandb.
-    trainer.init_wandb(cfg,
-                       project=args.wandb_name,
-                       mode="disabled" if args.debug or not args.wandb else "online",
-                       resume=args.resume,
-                       use_group=True)
+    trainer.init_wandb(
+        cfg,
+        project=args.wandb_name,
+        mode="disabled" if args.debug or not args.wandb else "online",
+        resume=args.resume,
+        use_group=True,
+    )
 
-    trainer.mode = 'train'
+    trainer.mode = "train"
     # Start training.
-    trainer.train(cfg,
-                  trainer.train_data_loader,
-                  single_gpu=args.single_gpu,
-                  profile=args.profile,
-                  show_pbar=args.show_pbar)
+    trainer.train(
+        cfg,
+        trainer.train_data_loader,
+        single_gpu=args.single_gpu,
+        profile=args.profile,
+        show_pbar=args.show_pbar,
+    )
 
     # Finalize training.
     trainer.finalize(cfg)

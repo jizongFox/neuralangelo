@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import numpy as np
 import trimesh
@@ -22,7 +22,9 @@ from imaginaire.utils.distributed import get_world_size, is_master
 
 
 @torch.no_grad()
-def extract_mesh(sdf_func, bounds, intv, block_res=64, texture_func=None, filter_lcc=False):
+def extract_mesh(
+    sdf_func, bounds, intv, block_res=64, texture_func=None, filter_lcc=False
+):
     lattice_grid = LatticeGrid(bounds, intv=intv, block_res=block_res)
     data_loader = get_lattice_grid_loader(lattice_grid)
     mesh_blocks = []
@@ -41,8 +43,12 @@ def extract_mesh(sdf_func, bounds, intv, block_res=64, texture_func=None, filter
     else:
         mesh_blocks_gather = [mesh_blocks]
     if is_master():
-        mesh_blocks_all = [mesh for mesh_blocks in mesh_blocks_gather for mesh in mesh_blocks
-                           if mesh.vertices.shape[0] > 0]
+        mesh_blocks_all = [
+            mesh
+            for mesh_blocks in mesh_blocks_gather
+            for mesh in mesh_blocks
+            if mesh.vertices.shape[0] > 0
+        ]
         mesh = trimesh.util.concatenate(mesh_blocks_all)
         return mesh
     else:
@@ -58,7 +64,9 @@ def extract_texture(xyz, neural_rgb, neural_sdf, appear_embed):
     normals = torch_F.normalize(gradients, dim=-1)
     if appear_embed is not None:
         feat_dim = appear_embed.embedding_dim  # [1,1,N,C]
-        app = torch.zeros([1, 1, num_samples, feat_dim], device=sdfs.device)  # TODO: hard-coded to zero. better way?
+        app = torch.zeros(
+            [1, 1, num_samples, feat_dim], device=sdfs.device
+        )  # TODO: hard-coded to zero. better way?
     else:
         app = None
     rgbs = neural_rgb.forward(xyz_cuda, normals, -normals, feats, app=app)  # [1,1,N,3]
@@ -66,7 +74,6 @@ def extract_texture(xyz, neural_rgb, neural_sdf, appear_embed):
 
 
 class LatticeGrid(torch.utils.data.Dataset):
-
     def __init__(self, bounds, intv, block_res=64):
         super().__init__()
         self.block_res = block_res
@@ -89,9 +96,12 @@ class LatticeGrid(torch.utils.data.Dataset):
         xi = block_idx_x * self.block_res
         yi = block_idx_y * self.block_res
         zi = block_idx_z * self.block_res
-        x, y, z = torch.meshgrid(self.x_grid[xi:xi+self.block_res+1],
-                                 self.y_grid[yi:yi+self.block_res+1],
-                                 self.z_grid[zi:zi+self.block_res+1], indexing="ij")
+        x, y, z = torch.meshgrid(
+            self.x_grid[xi : xi + self.block_res + 1],
+            self.y_grid[yi : yi + self.block_res + 1],
+            self.z_grid[zi : zi + self.block_res + 1],
+            indexing="ij",
+        )
         xyz = torch.stack([x, y, z], dim=-1)
         sample.update(xyz=xyz)
         return sample
@@ -102,7 +112,9 @@ class LatticeGrid(torch.utils.data.Dataset):
 
 def get_lattice_grid_loader(dataset, num_workers=8):
     if dist.is_initialized():
-        sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=False)
+        sampler = torch.utils.data.distributed.DistributedSampler(
+            dataset, shuffle=False
+        )
     else:
         sampler = None
     return torch.utils.data.DataLoader(
@@ -112,13 +124,13 @@ def get_lattice_grid_loader(dataset, num_workers=8):
         sampler=sampler,
         pin_memory=True,
         num_workers=num_workers,
-        drop_last=False
+        drop_last=False,
     )
 
 
 def marching_cubes(sdf, xyz, intv, texture_func, filter_lcc):
     # marching cubes
-    V, F = mcubes.marching_cubes(sdf, 0.)
+    V, F = mcubes.marching_cubes(sdf, 0.0)
     if V.shape[0] > 0:
         V = V * intv + xyz[0, 0, 0]
         if texture_func is not None:
@@ -138,7 +150,11 @@ def filter_points_outside_bounding_sphere(old_mesh):
     if np.any(mask):
         indices = np.ones(len(old_mesh.vertices), dtype=int) * -1
         indices[mask] = np.arange(mask.sum())
-        faces_mask = mask[old_mesh.faces[:, 0]] & mask[old_mesh.faces[:, 1]] & mask[old_mesh.faces[:, 2]]
+        faces_mask = (
+            mask[old_mesh.faces[:, 0]]
+            & mask[old_mesh.faces[:, 1]]
+            & mask[old_mesh.faces[:, 2]]
+        )
         new_faces = indices[old_mesh.faces[faces_mask]]
         new_vertices = old_mesh.vertices[mask]
         new_colors = old_mesh.visual.vertex_colors[mask]

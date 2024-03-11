@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import functools
 import ctypes
@@ -18,16 +18,16 @@ import torch.distributed as dist
 from contextlib import contextmanager
 
 
-def init_dist(local_rank, backend='nccl', **kwargs):
+def init_dist(local_rank, backend="nccl", **kwargs):
     r"""Initialize distributed training"""
     if dist.is_available():
         if dist.is_initialized():
             return torch.cuda.current_device()
         torch.cuda.set_device(local_rank)
-        dist.init_process_group(backend=backend, init_method='env://', **kwargs)
+        dist.init_process_group(backend=backend, init_method="env://", **kwargs)
 
     # Increase the L2 fetch granularity for faster speed.
-    _libcudart = ctypes.CDLL('libcudart.so')
+    _libcudart = ctypes.CDLL("libcudart.so")
     # Set device limit on the current device
     # cudaLimitMaxL2FetchGranularity = 0x05
     pValue = ctypes.cast((ctypes.c_int * 1)(), ctypes.POINTER(ctypes.c_int))
@@ -65,6 +65,7 @@ def broadcast_object_list(message, src=0):
 
 def master_only(func):
     r"""Apply this function only to the master GPU."""
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         r"""Simple function wrapper for the master function"""
@@ -72,6 +73,7 @@ def master_only(func):
             return func(*args, **kwargs)
         else:
             return None
+
     return wrapper
 
 
@@ -108,33 +110,33 @@ def master_only_print(*args):
     print(*args)
 
 
-def dist_reduce_tensor(tensor, rank=0, reduce='mean'):
-    r""" Reduce to rank 0 """
+def dist_reduce_tensor(tensor, rank=0, reduce="mean"):
+    r"""Reduce to rank 0"""
     world_size = get_world_size()
     if world_size < 2:
         return tensor
     with torch.no_grad():
         dist.reduce(tensor, dst=rank)
         if get_rank() == rank:
-            if reduce == 'mean':
+            if reduce == "mean":
                 tensor /= world_size
-            elif reduce == 'sum':
+            elif reduce == "sum":
                 pass
             else:
                 raise NotImplementedError
     return tensor
 
 
-def dist_all_reduce_tensor(tensor, reduce='mean'):
-    r""" Reduce to all ranks """
+def dist_all_reduce_tensor(tensor, reduce="mean"):
+    r"""Reduce to all ranks"""
     world_size = get_world_size()
     if world_size < 2:
         return tensor
     with torch.no_grad():
         dist.all_reduce(tensor)
-        if reduce == 'mean':
+        if reduce == "mean":
             tensor /= world_size
-        elif reduce == 'sum':
+        elif reduce == "sum":
             pass
         else:
             raise NotImplementedError
@@ -142,12 +144,11 @@ def dist_all_reduce_tensor(tensor, reduce='mean'):
 
 
 def dist_all_gather_tensor(tensor):
-    r""" gather to all ranks """
+    r"""gather to all ranks"""
     world_size = get_world_size()
     if world_size < 2:
         return [tensor]
-    tensor_list = [
-        torch.ones_like(tensor) for _ in range(dist.get_world_size())]
+    tensor_list = [torch.ones_like(tensor) for _ in range(dist.get_world_size())]
     with torch.no_grad():
         dist.all_gather(tensor_list, tensor)
     return tensor_list

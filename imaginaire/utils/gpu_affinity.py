@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,10 +8,11 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import math
 import os
+
 # pynvml is a python bindings to the NVIDIA Management Library
 # https://developer.nvidia.com/nvidia-management-library-nvml
 # An API for monitoring and managing various states of the NVIDIA GPU devices.
@@ -46,10 +47,12 @@ class Device(object):
 
     def get_cpu_affinity(self):
         r"""Get CPU affinity"""
-        affinity_string = ''
-        for j in pynvml.nvmlDeviceGetCpuAffinity(self.handle, Device._nvml_affinity_elements):
+        affinity_string = ""
+        for j in pynvml.nvmlDeviceGetCpuAffinity(
+            self.handle, Device._nvml_affinity_elements
+        ):
             # assume nvml returns list of 64 bit ints
-            affinity_string = '{:064b}'.format(j) + affinity_string
+            affinity_string = "{:064b}".format(j) + affinity_string
         affinity_list = [int(x) for x in affinity_string]
         affinity_list.reverse()  # so core 0 is in 0th element of list
 
@@ -63,7 +66,7 @@ def set_affinity(gpu_id=None):
         gpu_id (int): Which gpu device.
     """
     if gpu_id is None:
-        gpu_id = int(os.getenv('LOCAL_RANK', 0))
+        gpu_id = int(os.getenv("LOCAL_RANK", 0))
 
     try:
         dev = Device(gpu_id)

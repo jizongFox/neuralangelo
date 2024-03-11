@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import json
 import numpy as np
@@ -23,27 +23,30 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class Dataset(base.Dataset):
-
     def __init__(self, cfg, is_inference=False):
         super().__init__(cfg, is_inference=is_inference, is_test=False)
         cfg_data = cfg.data
         self.root = cfg_data.root
         self.preload = cfg_data.preload
-        self.H, self.W = cfg_data.val.image_size if is_inference else cfg_data.train.image_size
+        self.H, self.W = (
+            cfg_data.val.image_size if is_inference else cfg_data.train.image_size
+        )
         meta_fname = f"{cfg_data.root}/transforms.json"
         with open(meta_fname) as file:
             self.meta = json.load(file)
         self.list = self.meta["frames"]
         if cfg_data[self.split].subset:
             subset = cfg_data[self.split].subset
-            subset_idx = np.linspace(0, len(self.list), subset+1)[:-1].astype(int)
+            subset_idx = np.linspace(0, len(self.list), subset + 1)[:-1].astype(int)
             self.list = [self.list[i] for i in subset_idx]
         self.num_rays = cfg.model.render.rand_rays
         self.readjust = getattr(cfg_data, "readjust", None)
         # Preload dataset if possible.
         if cfg_data.preload:
             self.images = self.preload_threading(self.get_image, cfg_data.num_workers)
-            self.cameras = self.preload_threading(self.get_camera, cfg_data.num_workers, data_str="cameras")
+            self.cameras = self.preload_threading(
+                self.get_camera, cfg_data.num_workers, data_str="cameras"
+            )
 
     def __getitem__(self, idx):
         """Process raw data and return processed data in a dictionary.
@@ -60,14 +63,16 @@ class Dataset(base.Dataset):
         # Keep track of sample index for convenience.
         sample = dict(idx=idx)
         # Get the images.
-        image, image_size_raw = self.images[idx] if self.preload else self.get_image(idx)
+        image, image_size_raw = (
+            self.images[idx] if self.preload else self.get_image(idx)
+        )
         image = self.preprocess_image(image)
         # Get the cameras (intrinsics and pose).
         intr, pose = self.cameras[idx] if self.preload else self.get_camera(idx)
         intr, pose = self.preprocess_camera(intr, pose, image_size_raw)
         # Pre-sample ray indices.
         if self.split == "train":
-            ray_idx = torch.randperm(self.H * self.W)[:self.num_rays]  # [R]
+            ray_idx = torch.randperm(self.H * self.W)[: self.num_rays]  # [R]
             image_sampled = image.flatten(1, 2)[:, ray_idx].t()  # [R,3]
             sample.update(
                 ray_idx=ray_idx,
@@ -100,19 +105,25 @@ class Dataset(base.Dataset):
 
     def get_camera(self, idx):
         # Camera intrinsics.
-        intr = torch.tensor([[self.meta["fl_x"], self.meta["sk_x"], self.meta["cx"]],
-                             [self.meta["sk_y"], self.meta["fl_y"], self.meta["cy"]],
-                             [0, 0, 1]]).float()
+        intr = torch.tensor(
+            [
+                [self.meta["fl_x"], self.meta["sk_x"], self.meta["cx"]],
+                [self.meta["sk_y"], self.meta["fl_y"], self.meta["cy"]],
+                [0, 0, 1],
+            ]
+        ).float()
         # Camera pose.
         c2w_gl = torch.tensor(self.list[idx]["transform_matrix"], dtype=torch.float32)
         c2w = self._gl_to_cv(c2w_gl)
         # center scene
         center = np.array(self.meta["sphere_center"])
-        center += np.array(getattr(self.readjust, "center", [0])) if self.readjust else 0.
+        center += (
+            np.array(getattr(self.readjust, "center", [0])) if self.readjust else 0.0
+        )
         c2w[:3, -1] -= center
         # scale scene
         scale = np.array(self.meta["sphere_radius"])
-        scale *= getattr(self.readjust, "scale", 1.) if self.readjust else 1.
+        scale *= getattr(self.readjust, "scale", 1.0) if self.readjust else 1.0
         c2w[:3, -1] /= scale
         w2c = camera.Pose().invert(c2w[:3])
         return intr, w2c

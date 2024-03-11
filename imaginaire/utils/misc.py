@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import collections
 import functools
@@ -30,14 +30,14 @@ from imaginaire.utils.termcolor import alert, PP  # noqa
 
 def santize_args(name, locals_fn):
     args = {k: v for k, v in locals_fn.items()}
-    if 'kwargs' in args and args['kwargs']:
-        unused = PP(args['kwargs'])
-        alert(f'{name}: Unused kwargs\n{unused}')
+    if "kwargs" in args and args["kwargs"]:
+        unused = PP(args["kwargs"])
+        alert(f"{name}: Unused kwargs\n{unused}")
 
-    keys_to_remove = ['self', 'kwargs']
+    keys_to_remove = ["self", "kwargs"]
     for k in keys_to_remove:
         args.pop(k, None)
-    alert(f'{name}: Used args\n{PP(args)}', 'green')
+    alert(f"{name}: Used args\n{PP(args)}", "green")
     return args
 
 
@@ -67,7 +67,7 @@ def split_labels(labels, label_lengths):
 
 
 def requires_grad(model, require=True):
-    r""" Set a model to require gradient or not.
+    r"""Set a model to require gradient or not.
 
     Args:
         model (nn.Module): Neural network model.
@@ -96,7 +96,9 @@ def to_device(data, device):
         return data
     elif isinstance(data, collections.abc.Mapping):
         return type(data)({key: to_device(data[key], device) for key in data})
-    elif isinstance(data, collections.abc.Sequence) and not isinstance(data, string_classes):
+    elif isinstance(data, collections.abc.Sequence) and not isinstance(
+        data, string_classes
+    ):
         return type(data)([to_device(d, device) for d in data])
     else:
         return data
@@ -108,7 +110,7 @@ def to_cuda(data):
     Args:
         data (dict, list, or tensor): Input data.
     """
-    return to_device(data, 'cuda')
+    return to_device(data, "cuda")
 
 
 def to_cpu(data):
@@ -117,7 +119,7 @@ def to_cpu(data):
     Args:
         data (dict, list, or tensor): Input data.
     """
-    return to_device(data, 'cpu')
+    return to_device(data, "cpu")
 
 
 def to_half(data):
@@ -131,7 +133,9 @@ def to_half(data):
         return data
     elif isinstance(data, collections.abc.Mapping):
         return type(data)({key: to_half(data[key]) for key in data})
-    elif isinstance(data, collections.abc.Sequence) and not isinstance(data, string_classes):
+    elif isinstance(data, collections.abc.Sequence) and not isinstance(
+        data, string_classes
+    ):
         return type(data)([to_half(d) for d in data])
     else:
         return data
@@ -148,7 +152,9 @@ def to_float(data):
         return data
     elif isinstance(data, collections.abc.Mapping):
         return type(data)({key: to_float(data[key]) for key in data})
-    elif isinstance(data, collections.abc.Sequence) and not isinstance(data, string_classes):
+    elif isinstance(data, collections.abc.Sequence) and not isinstance(
+        data, string_classes
+    ):
         return type(data)([to_float(d) for d in data])
     else:
         return data
@@ -164,7 +170,9 @@ def slice_tensor(data, start, end):
         return data
     elif isinstance(data, collections.abc.Mapping):
         return type(data)({key: slice_tensor(data[key], start, end) for key in data})
-    elif isinstance(data, collections.abc.Sequence) and not isinstance(data, string_classes):
+    elif isinstance(data, collections.abc.Sequence) and not isinstance(
+        data, string_classes
+    ):
         return type(data)([slice_tensor(d, start, end) for d in data])
     else:
         return data
@@ -199,7 +207,7 @@ def get_nested_attr(cfg, attr_name, default):
     Returns:
         (obj): Attribute value.
     """
-    names = attr_name.split('.')
+    names = attr_name.split(".")
     atr = cfg
     for name in names:
         if not hasattr(atr, name):
@@ -220,10 +228,10 @@ def gradient_norm(model):
         if p.grad is not None:
             param_norm = p.grad.norm(2)
             total_norm += param_norm.item() ** 2
-    return total_norm ** (1. / 2)
+    return total_norm ** (1.0 / 2)
 
 
-def random_shift(x, offset=0.05, mode='bilinear', padding_mode='reflection'):
+def random_shift(x, offset=0.05, mode="bilinear", padding_mode="reflection"):
     r"""Randomly shift the input tensor.
 
     Args:
@@ -238,11 +246,12 @@ def random_shift(x, offset=0.05, mode='bilinear', padding_mode='reflection'):
     """
     assert x.dim() == 4, "Input must be a 4D tensor."
     batch_size = x.size(0)
-    theta = torch.eye(2, 3, device=x.device).unsqueeze(0).repeat(
-        batch_size, 1, 1)
+    theta = torch.eye(2, 3, device=x.device).unsqueeze(0).repeat(batch_size, 1, 1)
     theta[:, :, 2] = 2 * offset * torch.rand(batch_size, 2) - offset
     grid = F.affine_grid(theta, x.size())
-    x = F.grid_sample(x, grid, mode=mode, padding_mode=padding_mode, align_corners=False)
+    x = F.grid_sample(
+        x, grid, mode=mode, padding_mode=padding_mode, align_corners=False
+    )
     return x
 
 
@@ -281,25 +290,31 @@ def apply_imagenet_normalization(input):
 
 def alarm_handler(timeout_period, signum, frame):
     # What to do when the process gets stuck. For now, we simply end the process.
-    error_message = f"Timeout error! More than {timeout_period} seconds have passed since the last iteration. Most " \
-                    f"likely the process has been stuck due to node failure or PBSS error."
-    ngc_job_id = os.environ.get('NGC_JOB_ID', None)
+    error_message = (
+        f"Timeout error! More than {timeout_period} seconds have passed since the last iteration. Most "
+        f"likely the process has been stuck due to node failure or PBSS error."
+    )
+    ngc_job_id = os.environ.get("NGC_JOB_ID", None)
     if ngc_job_id is not None:
         error_message += f" Failed NGC job ID: {ngc_job_id}."
     # Let's reserve `wandb.alert` for this purpose.
-    wandb.alert(title="Timeout error!", text=error_message, level=wandb.AlertLevel.ERROR)
+    wandb.alert(
+        title="Timeout error!", text=error_message, level=wandb.AlertLevel.ERROR
+    )
     exit()
 
 
 class Timer(object):
-
     def __init__(self, cfg):
         self.cfg = cfg
         self.time_iteration = 0
         self.time_epoch = 0
         if is_master():
             # noinspection PyTypeChecker
-            signal.signal(signal.SIGALRM, functools.partial(alarm_handler, self.cfg.timeout_period))
+            signal.signal(
+                signal.SIGALRM,
+                functools.partial(alarm_handler, self.cfg.timeout_period),
+            )
 
     def reset(self):
         self.accu_forw_iter_time = 0
@@ -351,12 +366,32 @@ class Timer(object):
 
     def _print_speed_benchmark(self, avg_time):
         """Prints the profiling results and resets the timers."""
-        print('{:6f}'.format(avg_time))
-        print('\tModel FWD time {:6f}'.format(self.accu_forw_iter_time / self.cfg.logging_iter))
-        print('\tModel LOS time {:6f}'.format(self.accu_loss_iter_time / self.cfg.logging_iter))
-        print('\tModel BCK time {:6f}'.format(self.accu_back_iter_time / self.cfg.logging_iter))
-        print('\tModel STP time {:6f}'.format(self.accu_step_iter_time / self.cfg.logging_iter))
-        print('\tModel AVG time {:6f}'.format(self.accu_avg_iter_time / self.cfg.logging_iter))
+        print("{:6f}".format(avg_time))
+        print(
+            "\tModel FWD time {:6f}".format(
+                self.accu_forw_iter_time / self.cfg.logging_iter
+            )
+        )
+        print(
+            "\tModel LOS time {:6f}".format(
+                self.accu_loss_iter_time / self.cfg.logging_iter
+            )
+        )
+        print(
+            "\tModel BCK time {:6f}".format(
+                self.accu_back_iter_time / self.cfg.logging_iter
+            )
+        )
+        print(
+            "\tModel STP time {:6f}".format(
+                self.accu_step_iter_time / self.cfg.logging_iter
+            )
+        )
+        print(
+            "\tModel AVG time {:6f}".format(
+                self.accu_avg_iter_time / self.cfg.logging_iter
+            )
+        )
         self.accu_forw_iter_time = 0
         self.accu_loss_iter_time = 0
         self.accu_back_iter_time = 0

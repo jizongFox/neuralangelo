@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import numpy as np
 import torch
@@ -16,9 +16,17 @@ import torch.nn.functional as torch_F
 
 
 class MLPforNeuralSDF(torch.nn.Module):
-
-    def __init__(self, layer_dims, skip_connection=[], activ=None, use_layernorm=False, use_weightnorm=False,
-                 geometric_init=False, out_bias=0., invert=False):
+    def __init__(
+        self,
+        layer_dims,
+        skip_connection=[],
+        activ=None,
+        use_layernorm=False,
+        use_weightnorm=False,
+        geometric_init=False,
+        out_bias=0.0,
+        invert=False,
+    ):
         """Initialize a multi-layer perceptron with skip connection.
         Args:
             layer_dims: A list of integers representing the number of channels in each layer.
@@ -37,8 +45,13 @@ class MLPforNeuralSDF(torch.nn.Module):
                 k_in += layer_dims[0]
             linear = torch.nn.Linear(k_in, k_out)
             if geometric_init:
-                self._geometric_init(linear, k_in, k_out, first=(li == 0),
-                                     skip_dim=(layer_dims[0] if li in self.skip_connection else 0))
+                self._geometric_init(
+                    linear,
+                    k_in,
+                    k_out,
+                    first=(li == 0),
+                    skip_dim=(layer_dims[0] if li in self.skip_connection else 0),
+                )
             if use_weightnorm:
                 linear = torch.nn.utils.weight_norm(linear)
             self.linears.append(linear)
@@ -49,7 +62,9 @@ class MLPforNeuralSDF(torch.nn.Module):
         # SDF prediction layer
         self.linear_sdf = torch.nn.Linear(k_in, 1)
         if geometric_init:
-            self._geometric_init_sdf(self.linear_sdf, k_in, out_bias=out_bias, invert=invert)
+            self._geometric_init_sdf(
+                self.linear_sdf, k_in, out_bias=out_bias, invert=invert
+            )
         self.activ = activ or torch_F.relu_
 
     def forward(self, input, with_sdf=True, with_feat=True):
@@ -63,8 +78,10 @@ class MLPforNeuralSDF(torch.nn.Module):
                     feat_pre = self.layer_norm[li](feat_pre)
                 feat_activ = self.activ(feat_pre)
             if li == len(self.linears) - 1:
-                out = [self.linear_sdf(feat) if with_sdf else None,
-                       feat_activ if with_feat else None]
+                out = [
+                    self.linear_sdf(feat) if with_sdf else None,
+                    feat_activ if with_feat else None,
+                ]
             feat = feat_activ
         return out
 
@@ -74,9 +91,11 @@ class MLPforNeuralSDF(torch.nn.Module):
         if first:
             torch.nn.init.constant_(linear.weight[:, 3:], 0.0)  # positional encodings
         if skip_dim:
-            torch.nn.init.constant_(linear.weight[:, -skip_dim:], 0.0)  # skip connections
+            torch.nn.init.constant_(
+                linear.weight[:, -skip_dim:], 0.0
+            )  # skip connections
 
-    def _geometric_init_sdf(self, linear, k_in, out_bias=0., invert=False):
+    def _geometric_init_sdf(self, linear, k_in, out_bias=0.0, invert=False):
         torch.nn.init.normal_(linear.weight, mean=np.sqrt(np.pi / k_in), std=0.0001)
         torch.nn.init.constant_(linear.bias, -out_bias)
         if invert:

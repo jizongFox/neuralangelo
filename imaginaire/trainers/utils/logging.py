@@ -1,4 +1,4 @@
-'''
+"""
 -----------------------------------------------------------------------------
 Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
@@ -8,7 +8,7 @@ and any modifications thereto. Any use, reproduction, disclosure or
 distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 -----------------------------------------------------------------------------
-'''
+"""
 
 import datetime
 import os
@@ -37,19 +37,20 @@ def init_logging(config_path, logdir, makedir=True):
     Returns:
         str: Return log dir
     """
+
     def _create_logdir(_config_path, _logdir, _root_dir):
         config_file = os.path.basename(_config_path)
         date_uid = get_date_uid()
         # example: logs/2019_0125_1047_58_spade_cocostuff
-        _log_file = '_'.join([date_uid, os.path.splitext(config_file)[0]])
+        _log_file = "_".join([date_uid, os.path.splitext(config_file)[0]])
         if _logdir is None:
             _logdir = os.path.join(_root_dir, _log_file)
         if makedir:
-            print('Make folder {}'.format(_logdir))
+            print("Make folder {}".format(_logdir))
             os.makedirs(_logdir, exist_ok=True)
         return _logdir
 
-    root_dir = 'logs'
+    root_dir = "logs"
     if dist.is_available():
         if dist.is_initialized():
             message = [None]
